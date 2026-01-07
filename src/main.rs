@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use clap::Parser;
+
 use openmw_config::OpenMWConfiguration;
 use vfstool_lib::VFS;
 
@@ -8,14 +10,15 @@ use tes3::esp::*;
 use tes3::nif::*;
 
 /// For arrows we offset translation and reduce scale
-fn process_arrow(object: &mut NiAVObject) {
-    object.translation.y += 8.0;
-    object.scale *= 0.5;
+fn process_arrow(object: &mut NiAVObject, args: &Args) {
+    object.translation.y += args.arrow_offset;
+    object.scale *= args.arrow_scale;
 }
 
 /// For bolts we just shift them forward slightly
-fn process_bolt(object: &mut NiAVObject) {
-    object.translation.y += 4.0;
+fn process_bolt(object: &mut NiAVObject, args: &Args) {
+    object.translation.y += args.bolt_offset;
+    object.scale *= args.bolt_scale;
 }
 
 /// For throwables we just flip them. (-1 scale)
@@ -44,7 +47,7 @@ fn insert_root_parent(stream: &mut NiStream) -> &mut NiNode {
     stream.get_mut(link).unwrap()
 }
 
-fn process_plugin(vfs: &VFS, plugin_path: &Path) {
+fn process_plugin(args: &Args, vfs: &VFS, plugin_path: &Path) {
     let filter = |tag| tag == *Weapon::TAG;
 
     let Ok(plugin) = Plugin::from_path_filtered(&plugin_path, filter) else {
@@ -73,7 +76,7 @@ fn process_plugin(vfs: &VFS, plugin_path: &Path) {
 
     // Process each projectile mesh.
 
-    let output_path = Path::new("output");
+    let output_path = Path::new("openmw_pincushion_generator");
 
     for (mesh_path, weapon) in projectiles {
         let with_prefix = format!("meshes/{}", mesh_path);
@@ -109,22 +112,48 @@ fn process_plugin(vfs: &VFS, plugin_path: &Path) {
                     process_throwable(object);
                 }
                 WeaponType::Arrow => {
-                    process_arrow(object);
+                    process_arrow(object, args);
                 }
                 WeaponType::Bolt => {
-                    process_bolt(object);
+                    process_bolt(object, args);
                 }
                 _ => {}
             }
         }
 
         let output_path = output_path.join(mesh_path);
+
+        println!("Saving modified mesh to: {:?}", output_path);
+
         std::fs::create_dir_all(output_path.parent().unwrap()).unwrap();
         stream.save_path(&output_path).unwrap();
     }
 }
 
+/// Generate pincushion projectile NIFs for OpenMW
+#[derive(Parser, Debug)]
+#[command(version, about)]
+struct Args {
+    /// Arrow offset
+    #[arg(long, required = true)]
+    arrow_offset: f32,
+
+    /// Arrow scale
+    #[arg(long, required = true)]
+    arrow_scale: f32,
+
+    /// Bolt offset
+    #[arg(long, required = true)]
+    bolt_offset: f32,
+
+    /// Bolt scale
+    #[arg(long, required = true)]
+    bolt_scale: f32,
+}
+
 fn main() {
+    let args = Args::parse();
+
     let config = OpenMWConfiguration::new(None).unwrap();
 
     let vfs = VFS::from_directories(config.data_directories(), None);
@@ -139,7 +168,7 @@ fn main() {
                 || bytes.eq_ignore_ascii_case(b"omwgam"))
         {
             if let Some(vfs_file) = vfs.get_file(file) {
-                process_plugin(&vfs, vfs_file.path());
+                process_plugin(&args, &vfs, vfs_file.path());
             }
         }
     }

@@ -2,6 +2,7 @@
 name = "openmw_pincushion_generator"
 version = "0.1.0"
 edition = "2024"
+description = "A tool to generate pincushion projectile NIFs for OpenMW"
 
 [profile.release]
 codegen-units = 1
@@ -13,6 +14,7 @@ debug = false
 [dependencies]
 vfstool_lib  = "^0.2"
 openmw-config = "^0.1"
+clap = { version = "^4.5", features = ["cargo", "derive"] }
 
 [dependencies.tes3]
 git = "https://github.com/Greatness7/tes3"

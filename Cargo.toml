@@ -1,0 +1,19 @@
+[package]
+name = "openmw_pincushion_generator"
+version = "0.1.0"
+edition = "2024"
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+panic = "abort"
+strip = "symbols"
+debug = false
+
+[dependencies]
+vfstool_lib  = "^0.2"
+openmw-config = "^0.1"
+
+[dependencies.tes3]
+git = "https://github.com/Greatness7/tes3"
+features = ["esp", "nif"]

@@ -47,6 +47,27 @@ fn insert_root_parent(stream: &mut NiStream) -> &mut NiNode {
     stream.get_mut(link).unwrap()
 }
 
+fn insert_no_collision_tag(stream: &mut NiStream) {
+    let mut extra_data = NiStringExtraData::default();
+    extra_data.value = "NC".into();
+
+    let extra_data_link = stream.insert(extra_data);
+
+    let root = stream
+        .get_as_mut::<_, NiObjectNET>(stream.roots[0])
+        .unwrap();
+
+    // Store the previous extra data
+    let next_extra_data = root.extra_data;
+
+    // Assign the new extra data
+    root.extra_data = extra_data_link.cast();
+
+    // Insert the previous after the new one
+    let extra_data = stream.get_mut(extra_data_link).unwrap();
+    extra_data.next = next_extra_data;
+}
+
 fn process_plugin(args: &Args, vfs: &VFS, plugin_path: &Path) {
     let filter = |tag| tag == *Weapon::TAG;
 
@@ -120,6 +141,8 @@ fn process_plugin(args: &Args, vfs: &VFS, plugin_path: &Path) {
                 _ => {}
             }
         }
+
+        insert_no_collision_tag(&mut stream);
 
         let output_path = output_path.join(mesh_path);
 

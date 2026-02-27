@@ -19,17 +19,20 @@ jobs:
     needs: setup
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [macos-15-intel, macos-latest, ubuntu-latest, windows-latest]
         include:
+          - os: macos-15-intel
+            binary: openmw_pincushion_generator
+            archive: openmw_pincushion_generator_${{github.ref_name}}_macos_x86_64.zip
           - os: macos-latest
             binary: openmw_pincushion_generator
-            archive: openmw_pincushion_generator_${{github.ref_name}}_macos.zip
+            archive: openmw_pincushion_generator_${{github.ref_name}}_macos_arm64.zip
           - os: ubuntu-latest
             binary: openmw_pincushion_generator
-            archive: openmw_pincushion_generator_${{github.ref_name}}_ubuntu.zip
+            archive: openmw_pincushion_generator_${{github.ref_name}}_ubuntu_x86_64.zip
           - os: windows-latest
             binary: openmw_pincushion_generator.exe
-            archive: openmw_pincushion_generator_${{github.ref_name}}_windows.zip
+            archive: openmw_pincushion_generator_${{github.ref_name}}_windows_x86_64.zip
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write

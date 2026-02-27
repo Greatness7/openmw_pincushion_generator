@@ -9,21 +9,11 @@ use vfstool_lib::VFS;
 use tes3::esp::*;
 use tes3::nif::*;
 
-/// For arrows we offset translation and reduce scale
-fn process_arrow(object: &mut NiAVObject, args: &Args) {
-    object.translation.y += args.arrow_offset;
-    object.scale *= args.arrow_scale;
-}
-
-/// For bolts we just shift them forward slightly
-fn process_bolt(object: &mut NiAVObject, args: &Args) {
-    object.translation.y += args.bolt_offset;
-    object.scale *= args.bolt_scale;
-}
-
-/// For throwables we just flip them. (-1 scale)
-fn process_throwable(object: &mut NiAVObject) {
-    object.scale *= -1.0;
+/// Apply the specified offset and scale.
+///
+fn process_object(object: &mut NiAVObject, offset_y: f32, scale: f32) {
+    object.translation.y += offset_y;
+    object.scale *= scale;
 }
 
 /// Insert a new parent node above the previous root node.
@@ -130,13 +120,13 @@ fn process_plugin(args: &Args, vfs: &VFS, plugin_path: &Path) {
             };
             match weapon.data.weapon_type {
                 WeaponType::MarksmanThrown => {
-                    process_throwable(object);
+                    process_object(object, args.thrown_offset, args.thrown_scale);
                 }
                 WeaponType::Arrow => {
-                    process_arrow(object, args);
+                    process_object(object, args.arrow_offset, args.arrow_scale);
                 }
                 WeaponType::Bolt => {
-                    process_bolt(object, args);
+                    process_object(object, args.bolt_offset, args.bolt_scale);
                 }
                 _ => {}
             }
@@ -172,6 +162,14 @@ struct Args {
     /// Bolt scale
     #[arg(long, required = true)]
     bolt_scale: f32,
+
+    /// Thrown offset
+    #[arg(long, required = true)]
+    thrown_offset: f32,
+
+    /// Thrown scale
+    #[arg(long, required = true)]
+    thrown_scale: f32,
 }
 
 fn main() {
@@ -188,7 +186,7 @@ fn main() {
             && (bytes.eq_ignore_ascii_case(b"esp")
                 || bytes.eq_ignore_ascii_case(b"esm")
                 || bytes.eq_ignore_ascii_case(b"omwaddon")
-                || bytes.eq_ignore_ascii_case(b"omwgam"))
+                || bytes.eq_ignore_ascii_case(b"omwgame"))
         {
             if let Some(vfs_file) = vfs.get_file(file) {
                 process_plugin(&args, &vfs, vfs_file.path());
